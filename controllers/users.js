@@ -1,5 +1,6 @@
 const db = require('../db');
 const Users = db.users;
+const bcrypt = require('bcrypt');
 const Randomizer = require('@namopanda/random-generator');
 
 async function getUsers(req, res) {
@@ -11,61 +12,70 @@ async function getUsers(req, res) {
         res.status(500).send('Internal Server Error');
     }
 }
-
 async function authorization(req, res) {
+
     try {
-        const result = Users.findAll({
-            where: {
-                login: req.body.login,
-            }
+        const result = await Users.findAll({
+            where: { login: req.body.login },
         });
-        if (!result[0]) {
-            res.status(400).send(JSON.stringify('Authorization failed'))
+
+        if (!result.length) {
+            return res.status(401).json({ message: 'Авторизация не удалась' });
+        }
+
+        const user = result[0];
+        const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
+
+        if (isPasswordValid) {
+            const resBody = {
+                id: user.id,
+                login: user.login,
+                username: user.username,
+                token: user.token,
+            };
+            return res.status(202).json(resBody);
         } else {
-            if (result[0].login === req.body.login && result[0].password === req.body.password) {
-                const resBody = {
-                    id: result[0].id,
-                    login: result[0].login,
-                    username: result[0].username,
-                    token: result[0].token
-                }
-                res.status(202).send(JSON.stringify(resBody));
-            } else {
-                res.status(400).send(JSON.stringify('Authorization failed'));
-            }
+            return res.status(401).json({ message: 'Authorization failed' });
         }
 
     } catch (error) {
-        res.status(500).send('Internal Server Error');
+        console.error('Error during authorization:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 }
 
 async function registration(req, res) {
     if (!req.body) return res.sendStatus(400);
     if (!req.body.login || !req.body.password || !req.body.username) return res.status(400).json({ message: `Empty fields` })
-    
+
     try {
-        const result = await Users.findAll({
-            where: {
-                login: req.body.login,
-            }
+        const existingUser = await Users.findAll({
+            where: { login: req.body.login },
         });
 
-        if (result[0]) {
-            res.status(400).send(JSON.stringify('User is already exists'))
-        } else {
-            const token = Randomizer.generateRandomString(30);
-            const resBody = {
-                id: null,
-                login: req.body.login,
-                password: req.body.password,
-                username: req.body.username,
-                token: token,
-            }
-
-            const user = await Users.create(resBody)
-            res.status(201).send(`User added with ID: ${user.null}`);
+        if (existingUser.length) {
+            return res.status(400).json({ message: 'User already exists' });
         }
+
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const token = Randomizer.generateRandomString(30);
+        const newUser = {
+            id: null,
+            login: req.body.login,
+            password: hashedPassword,
+            username: req.body.username,
+            token: token,
+        }
+
+        const user = await Users.create(newUser)
+
+        res.status(201).send({
+            id: user.null,
+            login: user.login,
+            username: user.username,
+            token: user.token
+        });
+
 
     } catch (error) {
         res.status(500).send('Internal Server Error');

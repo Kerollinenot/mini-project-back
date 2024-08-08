@@ -1,19 +1,15 @@
 const db = require('../db');
 const Users = db.users;
 
-async function checkToken (res, userId, token) {
+async function checkToken (res, token) {
     const user = await Users.findOne({
         where: {
-          id: userId
+          token: token
         }
       });
   
       if (!user) {
         return res.status(404).send('User is not assigned');
-      }
-  
-      if (user.token !== token) {
-        return res.sendStatus(401);
       }
 } 
 

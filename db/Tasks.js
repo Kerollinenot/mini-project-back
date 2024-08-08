@@ -7,16 +7,16 @@ module.exports = function (sequelize) {
             primaryKey: true
         },
         title: {
-             type: Sequelize.STRING(50)
+            type: Sequelize.STRING(50)
         },
         description: {
             type: Sequelize.TEXT
-       },
+        },
         group_id: {
-             type: Sequelize.INTEGER
+            type: Sequelize.INTEGER
         },
         status: {
-             type: Sequelize.INTEGER
+            type: Sequelize.ENUM(15)
         }
     }, {
         timestamps: false,

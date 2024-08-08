@@ -4,13 +4,13 @@ const checkToken = require('../functions/CheckToken').checkToken;
 
 async function getTasks(req, res) {
   try {
-    const token = req.headers['access-token'];
-    const userId = req.headers['user-id'];
-    if (!token || !userId) {
-      return res.status(400).send('Bad request');
+    const token = req.headers['authorization'];
+
+    if (!token) {
+      return res.status(401).send('Bad request');
     }
 
-    checkToken(res, userId, token)
+    checkToken(res , token)
 
     const result = await Tasks.findAll();
     res.json(result);
