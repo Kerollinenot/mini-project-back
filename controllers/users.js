@@ -2,6 +2,7 @@ const db = require('../db');
 const Users = db.users;
 const bcrypt = require('bcrypt');
 const Randomizer = require('@namopanda/random-generator');
+const getResponse = require('../functions/getResponse').getResponse;
 
 async function getUsers(req, res) {
     try {
@@ -13,14 +14,14 @@ async function getUsers(req, res) {
     }
 }
 async function authorization(req, res) {
-
+    console.log(getResponse(500))
     try {
         const result = await Users.findAll({
             where: { login: req.body.login },
         });
 
         if (!result.length) {
-            return res.status(401).json({ message: 'Авторизация не удалась' });
+            return res.status(400).json(getResponse(400));
         }
 
         const user = result[0];
@@ -33,20 +34,20 @@ async function authorization(req, res) {
                 username: user.username,
                 token: user.token,
             };
-            return res.status(202).json(resBody);
+            return res.status(200).json(resBody);
         } else {
-            return res.status(401).json({ message: 'Authorization failed' });
+            return res.status(400).json(getResponse(400));
         }
 
     } catch (error) {
         console.error('Error during authorization:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        res.status(500).json(getResponse(500));
     }
 }
 
 async function registration(req, res) {
     if (!req.body) return res.sendStatus(400);
-    if (!req.body.login || !req.body.password || !req.body.username) return res.status(400).json({ message: `Empty fields` })
+    if (!req.body.login || !req.body.password || !req.body.username) return res.status(400).json(getResponse(500))
 
     try {
         const existingUser = await Users.findAll({
@@ -54,7 +55,7 @@ async function registration(req, res) {
         });
 
         if (existingUser.length) {
-            return res.status(400).json({ message: 'User already exists' });
+            return res.status(400).json(getResponse(400));
         }
 
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -69,7 +70,7 @@ async function registration(req, res) {
 
         const user = await Users.create(newUser)
 
-        res.status(201).send({
+        res.status(200).send({
             id: user.null,
             login: user.login,
             username: user.username,
@@ -78,7 +79,7 @@ async function registration(req, res) {
 
 
     } catch (error) {
-        res.status(500).send('Internal Server Error');
+        res.status(500).send(getResponse(500));
     }
 }
 
