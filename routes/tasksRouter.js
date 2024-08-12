@@ -1,7 +1,10 @@
 const express = require('express')
 const router = express.Router()
-const tasksController = require('../controllers/tasks')
+const tasksController = require('../controllers/tasks');
+const { authenticateUser } = require('../middlewares/authenticateUser');
+const errorLogger = require('../middlewares/errorLogger'); 
 
-router.get('/:groupID', tasksController.getTasks)
+router.use(errorLogger)
+router.get('/:groupID', authenticateUser, tasksController.getTasks)
 
 module.exports = router

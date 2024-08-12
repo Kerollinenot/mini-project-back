@@ -1,20 +1,10 @@
-const { where } = require('sequelize');
 const db = require('../db');
 const Tasks = db.tasks;
-const checkToken = require('../functions/CheckToken').checkToken;
-const getResponse = require('../functions/getResponse').getResponse
+const {getErrorResponse} = require('../functions/getResponse');
 
-async function getTasks(req, res) {
+async function getTasks(req, res, next) {
   const groupID = parseInt(req.params.groupID);
   try {
-    const token = req.headers['authorization'];
-
-    if (!token) {
-      return res.status(401).send(getResponse(401));
-    }
-
-    checkToken(res , token)
-
     const result = await Tasks.findAll({
       where: {
         group_id: groupID
@@ -22,8 +12,8 @@ async function getTasks(req, res) {
     });
     res.json(result);
   } catch (error) {
-    console.error('Error fetching tasks:', error);
-    res.status(500).send(getResponse(500));
+    getErrorResponse(res)
+    next(error)
   }
 }
 

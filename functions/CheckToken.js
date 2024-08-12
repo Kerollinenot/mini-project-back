@@ -1,18 +1,39 @@
 const db = require('../db');
+const { getUnauthorizedResponse } = require('./getResponse');
 const Users = db.users;
 
-async function checkToken (res, token) {
+// async function checkToken (token) {
+//   try {
+//     const user = await Users.findOne({
+//       where: {
+//         token: token
+//       }
+//     });
+
+//     return user ? true: false
+
+//   } catch(err) {
+//     console.log(err)
+//   }
+// } 
+
+
+async function checkToken(res, token) {
+  try {
     const user = await Users.findOne({
-        where: {
-          token: token
-        }
-      });
-  
-      if (!user) {
-        return res.status(404).send('User is not assigned');
+      where: {
+        token: token
       }
-} 
+    });
+
+    if (!user) {
+      return getUnauthorizedResponse(res)
+    }
+  } catch (err) {
+    console.log(err)
+  }
+}
 
 module.exports = {
-    checkToken
+  checkToken
 }

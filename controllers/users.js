@@ -2,26 +2,26 @@ const db = require('../db');
 const Users = db.users;
 const bcrypt = require('bcrypt');
 const Randomizer = require('@namopanda/random-generator');
-const getResponse = require('../functions/getResponse').getResponse;
+const { getErrorResponse, getFailResponse, getUnauthorizedResponse } = require('../functions/getResponse');
 
-async function getUsers(req, res) {
+async function getUsers(req, res, next) {
     try {
         const result = await Users.findAll();
         res.json(result);
     } catch (error) {
-        console.error('Error fetching tasks:', error);
-        res.status(500).send('Internal Server Error');
+        getErrorResponse(res)
+        next(error)
     }
 }
-async function authorization(req, res) {
-    console.log(getResponse(500))
+
+async function authorization(req, res, next) {
     try {
         const result = await Users.findAll({
             where: { login: req.body.login },
         });
 
         if (!result.length) {
-            return res.status(400).json(getResponse(400));
+            return getUnauthorizedResponse(res)
         }
 
         const user = result[0];
@@ -36,26 +36,25 @@ async function authorization(req, res) {
             };
             return res.status(200).json(resBody);
         } else {
-            return res.status(400).json(getResponse(400));
+            return getFailResponse(res)
         }
 
     } catch (error) {
-        console.error('Error during authorization:', error);
-        res.status(500).json(getResponse(500));
+        getErrorResponse(res)
+        next(error)
     }
 }
 
-async function registration(req, res) {
-    if (!req.body) return res.sendStatus(400);
+async function registration(req, res, next) {
+    if (!req.body) return getFailResponse(res)
     if (!req.body.login || !req.body.password || !req.body.username) return res.status(400).json(getResponse(500))
-
     try {
         const existingUser = await Users.findAll({
             where: { login: req.body.login },
         });
 
         if (existingUser.length) {
-            return res.status(400).json(getResponse(400));
+            return getFailResponse(res)
         }
 
         const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -79,7 +78,8 @@ async function registration(req, res) {
 
 
     } catch (error) {
-        res.status(500).send(getResponse(500));
+        getErrorResponse(res)
+        next(error)
     }
 }
 

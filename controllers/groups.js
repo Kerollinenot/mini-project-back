@@ -1,22 +1,15 @@
 const db = require('../db');
 const Groups = db.groups;
-const checkToken = require('../functions/CheckToken').checkToken
-const getResponse = require('../functions/getResponse').getResponse;
+const {getErrorResponse} = require('../functions/getResponse');
 
-async function getGroups(req, res) {
+async function getGroups(req, res, next) {
   try {
-    const token = req.headers['authorization'];
-    if (!token) {
-      return res.status(401).send(getResponse(401));
-    }
-
-    checkToken(res, token)
-
+    throw new Error('easdasd')
     const groups = await Groups.findAll();
     res.json(groups);
   } catch (error) {
-    console.log(error)
-    res.status(500).send(getResponse(500));
+    getErrorResponse(res)
+    next(error)
   }
 }
 

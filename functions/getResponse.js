@@ -1,19 +1,22 @@
-function getResponse(code) {
-    switch (code) {
-        case 400:
-            return "Bad Request"
-            break
+const errorResponse = "Internal Server Error";
+const unauthorizedResponse = "Unauthorized"
+const failResponse = "Bad Request"
 
-        case 401:
-            return "Unauthorized"
-            break
-
-        case 500:
-            return "Internal Server Error"
-            break
-    }
+function getErrorResponse(res) {
+    return res.status(500).send(errorResponse);
 }
 
+function getFailResponse(res) {
+    return res.status(400).send(failResponse);
+}
+
+function getUnauthorizedResponse(res) {
+    return res.status(401).send(unauthorizedResponse);
+}
+
+
 module.exports = {
-    getResponse
+    getErrorResponse,
+    getUnauthorizedResponse,
+    getFailResponse
 } 
