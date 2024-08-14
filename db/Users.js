@@ -10,7 +10,7 @@ module.exports = function (sequelize) {
              type: Sequelize.STRING(30)
         },
         password: {
-            type: Sequelize.STRING(30)
+            type: Sequelize.STRING(60)
        },
        username: {
            type: Sequelize.STRING(50)

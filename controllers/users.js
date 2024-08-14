@@ -1,75 +1,80 @@
 const db = require('../db');
 const Users = db.users;
+const bcrypt = require('bcrypt');
 const Randomizer = require('@namopanda/random-generator');
+const { getFailResponse, getUnauthorizedResponse } = require('../functions/getResponse');
 
-async function getUsers(req, res) {
-    try {
-        const result = await Users.findAll();
-        res.json(result);
-    } catch (error) {
-        console.error('Error fetching tasks:', error);
-        res.status(500).send('Internal Server Error');
-    }
+async function getUsers(req, res, next) {
+    await Users.findAll()
+        .then(users => res.json(users))
+        .catch(err => next(err))
 }
 
-async function authorization(req, res) {
-    try {
-        const result = Users.findAll({
-            where: {
-                login: req.body.login,
-            }
-        });
-        if (!result[0]) {
-            res.status(400).send(JSON.stringify('Authorization failed'))
-        } else {
-            if (result[0].login === req.body.login && result[0].password === req.body.password) {
-                const resBody = {
-                    id: result[0].id,
-                    login: result[0].login,
-                    username: result[0].username,
-                    token: result[0].token
-                }
-                res.status(202).send(JSON.stringify(resBody));
-            } else {
-                res.status(400).send(JSON.stringify('Authorization failed'));
-            }
-        }
-
-    } catch (error) {
-        res.status(500).send('Internal Server Error');
-    }
-}
-
-async function registration(req, res) {
-    if (!req.body) return res.sendStatus(400);
-    if (!req.body.login || !req.body.password || !req.body.username) return res.status(400).json({ message: `Empty fields` })
+async function authorization(req, res, next) {
     
-    try {
-        const result = await Users.findAll({
-            where: {
-                login: req.body.login,
-            }
-        });
 
-        if (result[0]) {
-            res.status(400).send(JSON.stringify('User is already exists'))
-        } else {
-            const token = Randomizer.generateRandomString(30);
-            const resBody = {
-                id: null,
-                login: req.body.login,
-                password: req.body.password,
-                username: req.body.username,
-                token: token,
-            }
-
-            const user = await Users.create(resBody)
-            res.status(201).send(`User added with ID: ${user.null}`);
+    const sendResponse = async (users) => {
+        if (!users.length) {
+            return getUnauthorizedResponse(res)
         }
 
-    } catch (error) {
-        res.status(500).send('Internal Server Error');
+        const user = users[0];
+        const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
+    
+        if (isPasswordValid) {
+            const resBody = {
+                id: user.id,
+                login: user.login,
+                username: user.username,
+                token: user.token,
+            };
+            res.status(200).json(resBody);
+        } else {
+            return getFailResponse(res)
+        }
+        
     }
+
+    await Users.findAll({
+        where: { login: req.body.login },
+    })
+        .then(users => sendResponse(users))
+        .catch(err => next(err))
+}
+
+async function registration(req, res, next) {
+    if (!req.body.login || !req.body.password || !req.body.username) return getFailResponse(res);
+    
+    const registrateUser = async (users) => {
+        if (users.length) {
+            return getFailResponse(res)
+        }
+        
+        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const token = Randomizer.generateRandomString(30);
+        const newUser = {
+            id: null,
+            login: req.body.login,
+            password: hashedPassword,
+            username: req.body.username,
+            token: token,
+        }
+
+        const user = await Users.create(newUser)
+
+        res.status(200).send({
+            id: user.null,
+            login: user.login,
+            username: user.username,
+            token: user.token
+        });
+    }
+
+    await Users.findAll({
+        where: { login: req.body.login },
+    })
+    .then(users => registrateUser(users))
+    .catch(err => next(err))
 }
 
 
