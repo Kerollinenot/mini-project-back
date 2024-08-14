@@ -1,23 +1,24 @@
-const { checkToken }  = require('../functions/CheckToken');
+const db = require('../db');
+const { getUnauthorizedResponse } = require('../functions/getResponse');
 
-// function authenticateUser(req, res, next) {
-//     const token = req.headers['authorization'];
+async function authenticateUser(req, res, next) {
+  const token = req.headers['authorization'];
 
-//     let isTokenCorrect = token ? checkToken(token) : false
+  let isTokenCorrect = token ? await checkToken(token) : false
 
-//     if (isTokenCorrect) next()
-//     else return getUnauthorizedResponse(res);
-// }
-
-function authenticateUser(req, res, next) {
-    const token = req.headers['authorization'];
-
-    if (token) {
-      checkToken(res, token)
-      next()
-    }
-    else return getUnauthorizedResponse(res);
+  if (isTokenCorrect) next()
+  else return getUnauthorizedResponse(res);
 }
+
+async function checkToken (token) {
+  const user = await db.users.findOne({
+    where: {
+      token: token
+    }
+  });
+
+  return user ? true : false
+} 
 
 module.exports = {
     authenticateUser
